@@ -9,22 +9,12 @@ char msg[10];
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-String getTopic(char* param) {
-  String Topic = "";
-  int i = 0;
-  while((char)param[i] != 0) {
-    Topic += (char)param[i];
-    i++;
-  }
-  return Topic;  
-}
-
-int getPayload(byte* payload, unsigned int length) {
-  String pay = "";
+String getPayload(byte* payload, unsigned int length) {
+  String messagePayload = "";
   for (int i = 0; i < length; i++) {
-    pay = pay + (char)payload[i];
+    messagePayload += (char)payload[i];
   }
-  return pay.toInt();  
+  return messagePayload;
 }
 
 void setup_wifi() {
@@ -45,16 +35,20 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  String callTopic = getTopic(topic);
-  int pay = getPayload(payload, length);
-
-  Serial.print("Mensagem recebida [");
+  String messagePayload = getPayload(payload, length);
+  Serial.print("[");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+  Serial.println(messagePayload);
+
+  if (String(topic) == "/O8Rg5f638G/led") {
+    if (messagePayload == "true") {
+        digitalWrite(LED_BUILTIN, LOW);
+      }
+      else if (messagePayload == "false") {
+        digitalWrite(LED_BUILTIN, HIGH);
+      }
   }
-  Serial.println(); 
 }
 
 void reconnect() {
@@ -62,7 +56,7 @@ void reconnect() {
     Serial.print("Tentando conexão com o servidor MQTT...");
     if (client.connect(mqtt_client, mqtt_user, mqtt_pass)) {
       Serial.println("Conectado");
-//      client.subscribe("/teste");
+      client.subscribe("/O8Rg5f638G/led");
     } 
     else {
       Serial.print("falhou, rc = ");
@@ -80,7 +74,7 @@ void myConcat(String& dest,char c) {
 void setup() {
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_BUILTIN, HIGH);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -93,9 +87,21 @@ void loop() {
   }
   client.loop();
 
-  // Enviando para o topic teste!
-  comando = String(random(0, 4096));
+  sendTopic("/O8Rg5f638G/velocimetro");
+  sendTopic("/O8Rg5f638G/peso");
+  delay(500);
+}
+
+void sendTopic(char* topic) {
+  comando = String(random(0, 200));
   comando.toCharArray(msg, 10);
-  client.publish("/teste", msg);
-  delay(3000);
+  
+  if (true) {
+    Serial.print("[");
+    Serial.print(topic);
+    Serial.print("] = ");
+    Serial.print(msg);
+    Serial.println("");
+  }
+  client.publish(topic, msg);
 }
